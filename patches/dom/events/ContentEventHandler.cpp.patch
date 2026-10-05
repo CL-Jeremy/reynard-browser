@@ -1,5 +1,5 @@
 diff --git a/dom/events/ContentEventHandler.cpp b/dom/events/ContentEventHandler.cpp
-index d11a218cd050..a3eb850ebe4e 100644
+index d11a218cd050..90bed540bffc 100644
 --- a/dom/events/ContentEventHandler.cpp
 +++ b/dom/events/ContentEventHandler.cpp
 @@ -6,18 +6,26 @@
@@ -60,7 +60,7 @@ index d11a218cd050..a3eb850ebe4e 100644
  #include "nsTextFrame.h"
  
  // Work around conflicting define in rpcndr.h
-@@ -443,6 +458,931 @@ Result<nsRange*, nsresult> ContentEventHandler::InitRootContent(
+@@ -443,6 +458,936 @@ Result<nsRange*, nsresult> ContentEventHandler::InitRootContent(
    return rangeInRootElement;
  }
  
@@ -232,9 +232,14 @@ index d11a218cd050..a3eb850ebe4e 100644
 +      if (nsTextControlFrame* control =
 +              GetFocusedTextControlFrameForRoot(mRootElement)) {
 +        control->ControlElement()->GetTextEditorValue(aReply.mText);
++        aReply.mHasText = !aReply.mText.IsEmpty();
 +      } else {
 +        rv = GenerateFlatTextContent(mRootElement, aReply.mText);
 +        NS_ENSURE_SUCCESS(rv, rv);
++
++        // Empty blocks add line breaks to flat text but have no text to select.
++        aReply.mHasText = nsContentUtils::HasNonEmptyTextContent(
++            mRootElement, nsContentUtils::eRecurseIntoChildren);
 +      }
 +
 +      if (mFirstSelectedSimpleRange.IsPositioned()) {
@@ -992,7 +997,7 @@ index d11a218cd050..a3eb850ebe4e 100644
  nsresult ContentEventHandler::InitCommon(EventMessage aEventMessage,
                                           SelectionType aSelectionType,
                                           bool aRequireFlush) {
-@@ -628,6 +1568,13 @@ nsresult ContentEventHandler::QueryContentRect(
+@@ -628,6 +1573,13 @@ nsresult ContentEventHandler::QueryContentRect(
  
    aEvent->mReply->mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
        resultRect, presContext->AppUnitsPerDevPixel());
@@ -1006,7 +1011,7 @@ index d11a218cd050..a3eb850ebe4e 100644
    // Returning empty rect may cause native IME confused, let's make sure to
    // return non-empty rect.
    EnsureNonEmptyRect(aEvent->mReply->mRect);
-@@ -635,6 +1582,32 @@ nsresult ContentEventHandler::QueryContentRect(
+@@ -635,6 +1587,32 @@ nsresult ContentEventHandler::QueryContentRect(
    return NS_OK;
  }
  
@@ -1039,7 +1044,7 @@ index d11a218cd050..a3eb850ebe4e 100644
  // Editor places a padding <br> element under its root content if the editor
  // doesn't have any text. This happens even for single line editors.
  // When we get text content and when we change the selection,
-@@ -2525,6 +3498,7 @@ nsresult ContentEventHandler::OnQueryTextRect(WidgetQueryContentEvent* aEvent) {
+@@ -2525,6 +3503,7 @@ nsresult ContentEventHandler::OnQueryTextRect(WidgetQueryContentEvent* aEvent) {
    }
    DOMRangeAndAdjustedOffsetInFlattenedText domRangeAndAdjustedOffset =
        domRangeAndAdjustedOffsetOrError.unwrap();
@@ -1047,7 +1052,7 @@ index d11a218cd050..a3eb850ebe4e 100644
    nsString string;
    if (NS_WARN_IF(NS_FAILED(
            GenerateFlatTextContent(domRangeAndAdjustedOffset.mRange, string)))) {
-@@ -2862,9 +3836,58 @@ nsresult ContentEventHandler::OnQueryEditorRect(
+@@ -2862,9 +3841,58 @@ nsresult ContentEventHandler::OnQueryEditorRect(
      }
    }
  
@@ -1108,7 +1113,7 @@ index d11a218cd050..a3eb850ebe4e 100644
  
    MOZ_ASSERT(aEvent->Succeeded());
    return NS_OK;
-@@ -3416,13 +4439,63 @@ nsresult ContentEventHandler::ConvertToRootRelativeOffset(nsIFrame* aFrame,
+@@ -3416,13 +4444,63 @@ nsresult ContentEventHandler::ConvertToRootRelativeOffset(nsIFrame* aFrame,
    if (NS_WARN_IF(!rootPC)) {
      return NS_ERROR_FAILURE;
    }
@@ -1173,7 +1178,7 @@ index d11a218cd050..a3eb850ebe4e 100644
    // TransformFrameRectToAncestor returned the rect in the ancestor's appUnits,
    // but we want it in aFrame's units (in case of different full-zoom factors),
    // so convert back.
-@@ -3533,6 +4606,19 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
+@@ -3533,6 +4611,19 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
      }
    }
  

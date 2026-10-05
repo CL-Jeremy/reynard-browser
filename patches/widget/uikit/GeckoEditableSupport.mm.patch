@@ -1,9 +1,9 @@
 diff --git a/widget/uikit/GeckoEditableSupport.mm b/widget/uikit/GeckoEditableSupport.mm
 new file mode 100644
-index 000000000000..c379b44e620f
+index 000000000000..c1a2d2704c7d
 --- /dev/null
 +++ b/widget/uikit/GeckoEditableSupport.mm
-@@ -0,0 +1,3232 @@
+@@ -0,0 +1,3244 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2328,7 +2328,10 @@ index 000000000000..c379b44e620f
 +}
 +
 +- (BOOL)hasText {
-+  return [self documentLength] != 0;
++  RefPtr<widget::TextInputHandler> handler = [self textHandler];
++  const NativeTextInputReply* state =
++      handler ? handler->NativeTextInputState() : nullptr;
++  return state && state->mHasText;
 +}
 +
 +- (BOOL)hasContent {
@@ -2749,6 +2752,10 @@ index 000000000000..c379b44e620f
 +  }
 +
 +  if (aAction == @selector(selectAll:)) {
++    if (![self hasText]) {
++      return NO;
++    }
++
 +    NSUInteger length = [self documentLength];
 +    return length && !(selection.location == 0 && selection.length == length);
 +  }
@@ -2801,6 +2808,10 @@ index 000000000000..c379b44e620f
 +}
 +
 +- (void)select:(id)aSender {
++  if (![self canPerformAction:@selector(select:) withSender:aSender]) {
++    return;
++  }
++
 +  UITextRange* range = self.selectedTextRange;
 +  if (!range || !range.empty) {
 +    return;
@@ -2817,14 +2828,15 @@ index 000000000000..c379b44e620f
 +                                   inDirection:UITextStorageDirectionBackward];
 +  }
 +
-+  if (word) {
++  if (word && !word.empty) {
 +    self.selectedTextRange = word;
 +    [[self selectionCommandController] showSelectionCommands];
 +  }
 +}
 +
 +- (void)selectAll:(id)aSender {
-+  if (![self isEditable]) {
++  if (![self isEditable] ||
++      ![self canPerformAction:@selector(selectAll:) withSender:aSender]) {
 +    return;
 +  }
 +

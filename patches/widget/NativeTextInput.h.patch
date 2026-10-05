@@ -1,9 +1,9 @@
 diff --git a/widget/NativeTextInput.h b/widget/NativeTextInput.h
 new file mode 100644
-index 000000000000..4063cb0331b2
+index 000000000000..ab43fae4e614
 --- /dev/null
 +++ b/widget/NativeTextInput.h
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,101 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -82,6 +82,7 @@ index 000000000000..4063cb0331b2
 +struct NativeTextInputReply {
 +  bool mSucceeded = false;
 +  bool mEditable = false;
++  bool mHasText = false;
 +  bool mCanUndo = false;
 +  bool mCanRedo = false;
 +  bool mScrolled = false;
