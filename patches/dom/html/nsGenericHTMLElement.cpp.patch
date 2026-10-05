@@ -1,0 +1,44 @@
+diff --git a/dom/html/nsGenericHTMLElement.cpp b/dom/html/nsGenericHTMLElement.cpp
+index 1a77c71f0521..20c0450041ff 100644
+--- a/dom/html/nsGenericHTMLElement.cpp
++++ b/dom/html/nsGenericHTMLElement.cpp
+@@ -915,8 +915,12 @@ void nsGenericHTMLElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+       } else {
+         ClearHasName();
+       }
+-    } else if (aName == nsGkAtoms::inputmode ||
+-               aName == nsGkAtoms::enterkeyhint) {
++    } else if (aName == nsGkAtoms::inputmode || aName == nsGkAtoms::enterkeyhint
++#ifdef XP_IOS
++               || aName == nsGkAtoms::autocorrect ||
++               aName == nsGkAtoms::autocapitalize
++#endif
++    ) {
+       if (nsFocusManager::GetFocusedElementStatic() == this) {
+         if (const nsPresContext* presContext =
+                 GetPresContext(eForComposedDoc)) {
+@@ -2580,12 +2584,23 @@ EditorBase* nsGenericHTMLElement::GetAssociatedExtantEditor() const {
+ void nsGenericHTMLElement::SyncSpellCheckerStateOfExtantEditorsOnSubtree(
+     nsIContent& aContent) {
+   /* Sync this node */
+-  if (nsGenericHTMLElement* const element = FromNode(aContent)) {
++  if (const RefPtr<nsGenericHTMLElement> element = FromNode(aContent)) {
+     // SyncRealTimeSpell may run chrome script (bug 2065014). So, for now, we
+     // should keep using strong pointer.
+     if (const RefPtr<EditorBase> editorBase =
+             element->GetAssociatedExtantEditor()) {
+       editorBase->SyncRealTimeSpell();
++#ifdef XP_IOS
++      if (nsFocusManager::GetFocusedElementStatic() == element) {
++        Result<IMEState, nsresult> state = editorBase->GetPreferredIMEState();
++        if (state.isOk()) {
++          IMEStateManager::UpdateIMEState(
++              state.unwrap(), element, *editorBase,
++              {IMEStateManager::UpdateIMEStateOption::ForceUpdate,
++               IMEStateManager::UpdateIMEStateOption::DontCommitComposition});
++        }
++      }
++#endif
+     }
+   }
+ 

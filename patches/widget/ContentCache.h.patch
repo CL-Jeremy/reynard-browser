@@ -1,28 +1,14 @@
 diff --git a/widget/ContentCache.h b/widget/ContentCache.h
-index 1143a1de9bbe..a797878b12bb 100644
+index 1143a1de9bbe..d4f28f14c768 100644
 --- a/widget/ContentCache.h
 +++ b/widget/ContentCache.h
-@@ -44,6 +44,13 @@ class ContentCache {
+@@ -409,6 +409,9 @@ class ContentCacheInParent final : public ContentCache {
+   bool HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
+                                nsIWidget* aWidget) const;
  
-   [[nodiscard]] bool IsValid() const;
- 
-+  /**
-+   * Adjust all cached rects by the given delta. Used when the page
-+   * scrolls while an editor is focused, to update the cached positions without
-+   * re-querying the content process.
-+   */
-+  void OffsetAllRectsBy(LayoutDeviceIntPoint aDelta);
++  bool GetCachedCaretRect(uint32_t aOffset,
++                          LayoutDeviceIntRect& aCaretRect) const;
 +
-  protected:
-   void AssertIfInvalid() const;
- 
-@@ -297,6 +304,9 @@ class ContentCache {
-   Maybe<TextRectArray> mTextRectArray;
-   Maybe<TextRectArray> mLastCommitStringTextRectArray;
- 
-+  // Track whether the cached editor rect belongs to focused editable
-+  // content so parent-side query replies do not need to infer it from geometry.
-+  bool mEditorRectIsEditable = false;
-   LayoutDeviceIntRect mEditorRect;
- 
-   friend class ContentCacheInParent;
+   /**
+    * OnCompositionEvent() should be called before sending composition string.
+    * This returns true if the event should be sent.  Otherwise, false.

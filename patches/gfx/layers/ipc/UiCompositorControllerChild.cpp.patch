@@ -1,5 +1,5 @@
 diff --git a/gfx/layers/ipc/UiCompositorControllerChild.cpp b/gfx/layers/ipc/UiCompositorControllerChild.cpp
-index 89dc6497e3cb..08bd779d0259 100644
+index 89dc6497e3cb..837fdefe7c25 100644
 --- a/gfx/layers/ipc/UiCompositorControllerChild.cpp
 +++ b/gfx/layers/ipc/UiCompositorControllerChild.cpp
 @@ -22,8 +22,10 @@
@@ -94,7 +94,23 @@ index 89dc6497e3cb..08bd779d0259 100644
        }));
  
    task.Wait();
-@@ -358,6 +381,12 @@ void UiCompositorControllerChild::SendCachedValues() {
+@@ -274,6 +297,15 @@ UiCompositorControllerChild::RecvNotifyCompositorScrollUpdates(
+   return IPC_OK();
+ }
+ 
++mozilla::ipc::IPCResult
++UiCompositorControllerChild::RecvAsyncScrollStateChanged(bool aScrolling) {
++  if (mWidget) {
++    mWidget->NotifyAsyncScrollStateChanged(aScrolling);
++  }
++
++  return IPC_OK();
++}
++
+ mozilla::ipc::IPCResult UiCompositorControllerChild::RecvScreenPixels(
+     uint64_t aRequestId, bool aSuccess,
+     Maybe<ipc::FileDescriptor>&& aAcquireFence) {
+@@ -358,6 +390,12 @@ void UiCompositorControllerChild::SendCachedValues() {
      SendMaxToolbarHeight(mMaxToolbarHeight.ref());
      mMaxToolbarHeight.reset();
    }

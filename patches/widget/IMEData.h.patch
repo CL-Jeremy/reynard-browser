@@ -1,0 +1,38 @@
+diff --git a/widget/IMEData.h b/widget/IMEData.h
+index 9fefe4708cfc..cfa4084353c2 100644
+--- a/widget/IMEData.h
++++ b/widget/IMEData.h
+@@ -406,6 +406,8 @@ struct InputContext final {
+     mActionHint.Truncate();
+     mAutocapitalize.Truncate();
+     mAutocorrect = true;
++    mSpellCheckingEnabled = true;
++    mHasBeenPassword = false;
+   }
+ 
+   bool IsPasswordEditor() const {
+@@ -452,6 +454,11 @@ struct InputContext final {
+            // autocorrect is only supported by Android IME API, macOS text
+            // substitution and iOS API.
+            mAutocorrect != aOldContext.mAutocorrect ||
++#endif
++#ifdef XP_IOS
++           mSpellCheckingEnabled != aOldContext.mSpellCheckingEnabled ||
++           mHasBeenPassword != aOldContext.mHasBeenPassword ||
++           mInPrivateBrowsing != aOldContext.mInPrivateBrowsing ||
+ #endif
+            false;
+   }
+@@ -476,6 +483,12 @@ struct InputContext final {
+   /* A hint for autocorrect */
+   bool mAutocorrect = true;  // on-by-default
+ 
++  // Use the field's spellcheck setting
++  bool mSpellCheckingEnabled = true;
++
++  // Don't let the keyboard learn passwords, even if the field type changes.
++  bool mHasBeenPassword = false;
++
+   /**
+    * mOrigin indicates whether this focus event refers to main or remote
+    * content.

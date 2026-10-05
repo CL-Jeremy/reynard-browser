@@ -1,0 +1,24 @@
+diff --git a/dom/events/ContentEventHandler.h b/dom/events/ContentEventHandler.h
+index e383b6c7c97d..0399502f43a0 100644
+--- a/dom/events/ContentEventHandler.h
++++ b/dom/events/ContentEventHandler.h
+@@ -22,6 +22,9 @@ struct nsRect;
+ 
+ namespace mozilla {
+ 
++struct NativeTextInputRequest;
++struct NativeTextInputReply;
++
+ namespace dom {
+ class Element;
+ }  // namespace dom
+@@ -128,6 +131,9 @@ class MOZ_STACK_CLASS ContentEventHandler {
+ 
+   explicit ContentEventHandler(nsPresContext* aPresContext);
+ 
++  MOZ_CAN_RUN_SCRIPT nsresult QueryNativeTextInput(
++      const NativeTextInputRequest& aRequest, NativeTextInputReply& aReply);
++
+   // Handle aEvent in the current process.
+   MOZ_CAN_RUN_SCRIPT nsresult
+   HandleQueryContentEvent(WidgetQueryContentEvent* aEvent);

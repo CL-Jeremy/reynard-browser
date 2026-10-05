@@ -1,0 +1,26 @@
+diff --git a/widget/uikit/UIKitUtils.mm b/widget/uikit/UIKitUtils.mm
+index 3c259b196fdd..e022e0998a80 100644
+--- a/widget/uikit/UIKitUtils.mm
++++ b/widget/uikit/UIKitUtils.mm
+@@ -11,7 +11,7 @@
+   if (aContext.mHTMLInputMode.EqualsLiteral("email")) {
+     return UIKeyboardTypeEmailAddress;
+   }
+-  if (aContext.mHTMLInputMode.EqualsLiteral("deciaml")) {
++  if (aContext.mHTMLInputMode.EqualsLiteral("decimal")) {
+     return UIKeyboardTypeDecimalPad;
+   }
+   if (aContext.mHTMLInputMode.EqualsLiteral("numeric")) {
+@@ -88,6 +88,12 @@
+ // static
+ UITextAutocorrectionType UIKitUtils::GetUITextAutocorrectionType(
+     const InputContext& aContext) {
++  if (aContext.IsPasswordEditor() ||
++      aContext.mHTMLInputType.EqualsLiteral("email") ||
++      aContext.mHTMLInputType.EqualsLiteral("url")) {
++    return UITextAutocorrectionTypeNo;
++  }
++
+   return aContext.mAutocorrect ? UITextAutocorrectionTypeYes
+                                : UITextAutocorrectionTypeNo;
+ }
