@@ -1,9 +1,9 @@
 diff --git a/widget/uikit/GeckoEditableSupport.mm b/widget/uikit/GeckoEditableSupport.mm
 new file mode 100644
-index 000000000000..c1a2d2704c7d
+index 000000000000..f60fc483f259
 --- /dev/null
 +++ b/widget/uikit/GeckoEditableSupport.mm
-@@ -0,0 +1,3244 @@
+@@ -0,0 +1,3255 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1429,6 +1429,17 @@ index 000000000000..c1a2d2704c7d
 +}
 +
 +- (void)interactionWillBegin:(UITextInteraction*)aInteraction {
++  if ([self isEditable] && mGeckoChild->IsSoftwareKeyboardSuppressed() &&
++      !mGeckoChild->IsVirtualKeyboardDisabled()) {
++    // Native gestures may not send a click to Gecko. Reopen the keyboard for
++    // an already-focused field.
++    InputContext context = mGeckoChild->GetInputContext();
++    InputContextAction action(InputContextAction::CAUSE_TOUCH,
++                              InputContextAction::FOCUS_NOT_CHANGED);
++    mGeckoChild->SetInputContext(context, action);
++    return;
++  }
++
 +  [self becomeFirstResponder];
 +}
 +
@@ -2835,8 +2846,8 @@ index 000000000000..c1a2d2704c7d
 +}
 +
 +- (void)selectAll:(id)aSender {
-+  if (![self isEditable] ||
-+      ![self canPerformAction:@selector(selectAll:) withSender:aSender]) {
++  if (![self isEditable] || ![self canPerformAction:@selector(selectAll:)
++                                         withSender:aSender]) {
 +    return;
 +  }
 +
