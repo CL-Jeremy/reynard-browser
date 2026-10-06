@@ -1,5 +1,5 @@
 diff --git a/widget/uikit/nsWindow.h b/widget/uikit/nsWindow.h
-index 027dbf683744..c4e8a14cd8b9 100644
+index 027dbf683744..1f30e136d25c 100644
 --- a/widget/uikit/nsWindow.h
 +++ b/widget/uikit/nsWindow.h
 @@ -20,11 +20,14 @@ typedef struct objc_object ChildView;
@@ -36,7 +36,7 @@ index 027dbf683744..c4e8a14cd8b9 100644
    void Resize(const DesktopSize&, bool aRepaint) override;
    void Resize(const DesktopRect&, bool aRepaint) override;
    void DoResize(double aX, double aY, double aWidth, double aHeight,
-@@ -76,8 +83,28 @@ class nsWindow final : public nsIWidget {
+@@ -76,8 +83,29 @@ class nsWindow final : public nsIWidget {
      // XXX: terrible
      return 326.0f;
    }
@@ -50,7 +50,8 @@ index 027dbf683744..c4e8a14cd8b9 100644
 +  void UpdateDynamicToolbarOffset(mozilla::ScreenIntCoord aTopOffset,
 +                                  mozilla::ScreenIntCoord aBottomOffset,
 +                                  mozilla::ScreenIntCoord aTopInset,
-+                                  mozilla::ScreenIntCoord aBottomInset);
++                                  mozilla::ScreenIntCoord aBottomInset,
++                                  mozilla::ScreenIntCoord aContentTranslationY);
 +  void UpdateDynamicToolbarHeights(mozilla::ScreenIntCoord aMaxHeight,
 +                                   mozilla::ScreenIntCoord aMinHeight);
 +  mozilla::ScreenIntCoord GetDynamicToolbarMaxHeight() const override {
@@ -65,7 +66,7 @@ index 027dbf683744..c4e8a14cd8b9 100644
  
    nsresult SetTitle(const nsAString& aTitle) override { return NS_OK; }
  
-@@ -92,22 +119,32 @@ class nsWindow final : public nsIWidget {
+@@ -92,22 +120,33 @@ class nsWindow final : public nsIWidget {
    void SetInputContext(const InputContext& aContext,
                         const InputContextAction& aAction) override;
    InputContext GetInputContext() override;
@@ -80,6 +81,7 @@ index 027dbf683744..c4e8a14cd8b9 100644
      return mTextInputHandler;
    }
 +  bool FocusForHardwareKeyboard();
++  void DismissSoftwareKeyboard();
    bool IsVirtualKeyboardDisabled() const;
 -
 -  /*
@@ -106,7 +108,7 @@ index 027dbf683744..c4e8a14cd8b9 100644
  
    void HandleMainThreadCATransaction();
  
-@@ -137,6 +174,16 @@ class nsWindow final : public nsIWidget {
+@@ -137,6 +176,16 @@ class nsWindow final : public nsIWidget {
      mIOSView = aView;
    }
    mozilla::widget::IOSView* GetIOSView() const { return mIOSView; }
@@ -123,7 +125,7 @@ index 027dbf683744..c4e8a14cd8b9 100644
  
   protected:
    virtual ~nsWindow();
-@@ -146,6 +193,8 @@ class nsWindow final : public nsIWidget {
+@@ -146,6 +195,8 @@ class nsWindow final : public nsIWidget {
    nsresult GetCurrentOffset(uint32_t& aOffset, uint32_t& aLength);
    nsresult DeleteRange(int aOffset, int aLen);
  
@@ -132,7 +134,7 @@ index 027dbf683744..c4e8a14cd8b9 100644
    void TearDownView();
  
    ChildView* mNativeView;
-@@ -155,13 +204,22 @@ class nsWindow final : public nsIWidget {
+@@ -155,13 +206,22 @@ class nsWindow final : public nsIWidget {
    nsWindow* mParent;
  
    mozilla::widget::InputContext mInputContext;
