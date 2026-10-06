@@ -1,9 +1,9 @@
 diff --git a/widget/uikit/GeckoEditableSupport.mm b/widget/uikit/GeckoEditableSupport.mm
 new file mode 100644
-index 000000000000..f60fc483f259
+index 000000000000..aa43c3be0170
 --- /dev/null
 +++ b/widget/uikit/GeckoEditableSupport.mm
-@@ -0,0 +1,3255 @@
+@@ -0,0 +1,3282 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1462,6 +1462,7 @@ index 000000000000..f60fc483f259
 +- (void)updateFloatingCursorAtPoint:(CGPoint)aPoint {
 +  mEditable.mFloatingCursorPoint = aPoint;
 +  [[self interactionAssistant] updateFloatingCursorAtPoint:aPoint];
++  [self startAutoscroll:aPoint];
 +}
 +
 +- (void)endFloatingCursor {
@@ -1501,8 +1502,10 @@ index 000000000000..f60fc483f259
 +    adjustment = [assistant rangeAdjustmentInteraction];
 +  }
 +
-+  if ([adjustment respondsToSelector:@selector(hasActiveTouch)] &&
-+      adjustment.hasActiveTouch) {
++  if (mEditable.mFloatingCursorActive) {
++    aPoint = mEditable.mFloatingCursorPoint;
++  } else if ([adjustment respondsToSelector:@selector(hasActiveTouch)] &&
++             adjustment.hasActiveTouch) {
 +    // Don't let other hit tests change the dragged handle's position.
 +    aPoint = [assistant
 +        _rangeAdjustmentPointInTextInputCoordinateSpace:adjustment.extentPoint];
@@ -1514,7 +1517,31 @@ index 000000000000..f60fc483f259
 +  }
 +
 +  CGRect clip = [self _selectionClipRect];
-+  if (CGRectIsEmpty(clip) || CGRectContainsPoint(clip, aPoint)) {
++  if (CGRectIsEmpty(clip)) {
++    [self cancelAutoscroll];
++    return;
++  }
++
++  if (mEditable.mFloatingCursorActive) {
++    // Start near the edge, as WebKit does, even if UIKit bounds the cursor
++    // inside the field. Keep the original point for updating the selection.
++    const CGFloat horizontalMargin = std::min(CGFloat(20), clip.size.width / 4);
++    const CGFloat verticalMargin = std::min(CGFloat(20), clip.size.height / 4);
++    const CGRect interior = CGRectInset(clip, horizontalMargin, verticalMargin);
++    if (aPoint.x < CGRectGetMinX(interior)) {
++      aPoint.x = std::min(aPoint.x, CGRectGetMinX(clip) - horizontalMargin);
++    } else if (aPoint.x > CGRectGetMaxX(interior)) {
++      aPoint.x = std::max(aPoint.x, CGRectGetMaxX(clip) + horizontalMargin);
++    }
++
++    if (aPoint.y < CGRectGetMinY(interior)) {
++      aPoint.y = std::min(aPoint.y, CGRectGetMinY(clip) - verticalMargin);
++    } else if (aPoint.y > CGRectGetMaxY(interior)) {
++      aPoint.y = std::max(aPoint.y, CGRectGetMaxY(clip) + verticalMargin);
++    }
++  }
++
++  if (CGRectContainsPoint(clip, aPoint)) {
 +    [self cancelAutoscroll];
 +    return;
 +  }
@@ -2524,7 +2551,7 @@ index 000000000000..f60fc483f259
 +    return nil;
 +  }
 +
-+  if ([self isInteractingWithText]) {
++  if (!mEditable.mFloatingCursorActive && [self isInteractingWithText]) {
 +    [self startAutoscroll:aPoint];
 +  }
 +
