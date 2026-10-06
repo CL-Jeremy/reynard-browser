@@ -1,9 +1,9 @@
 diff --git a/widget/uikit/GeckoKeyboardSupport.mm b/widget/uikit/GeckoKeyboardSupport.mm
 new file mode 100644
-index 000000000000..07e637133a93
+index 000000000000..257293e9621f
 --- /dev/null
 +++ b/widget/uikit/GeckoKeyboardSupport.mm
-@@ -0,0 +1,965 @@
+@@ -0,0 +1,975 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -834,6 +834,7 @@ index 000000000000..07e637133a93
 +@end
 +
 +@interface ChildView (Keyboard)
++- (BOOL)_disableAutomaticKeyboardUI;
 +- (BOOL)_requiresKeyboardWhenFirstResponder;
 +- (BOOL)_requiresKeyboardResetOnReload;
 +- (void)_handleKeyUIEvent:(UIEvent*)event;
@@ -850,6 +851,15 @@ index 000000000000..07e637133a93
 +@end
 +
 +@implementation ChildView (Keyboard)
++
++- (BOOL)_disableAutomaticKeyboardUI {
++  if (![self isFirstResponder] || !mGeckoChild || mGeckoChild->Destroyed()) {
++    return NO;
++  }
++
++  // Keep page shortcuts working without showing keyboard UI outside inputs.
++  return mGeckoChild->IsVirtualKeyboardDisabled();
++}
 +
 +- (BOOL)_requiresKeyboardWhenFirstResponder {
 +  if (!mGeckoChild || mGeckoChild->Destroyed()) {

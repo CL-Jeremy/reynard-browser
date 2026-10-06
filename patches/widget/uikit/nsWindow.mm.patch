@@ -1,5 +1,5 @@
 diff --git a/widget/uikit/nsWindow.mm b/widget/uikit/nsWindow.mm
-index c1c4c3deb341..c6518d1374bd 100644
+index c1c4c3deb341..13e98e389627 100644
 --- a/widget/uikit/nsWindow.mm
 +++ b/widget/uikit/nsWindow.mm
 @@ -11,12 +11,14 @@
@@ -901,10 +901,7 @@ index c1c4c3deb341..c6518d1374bd 100644
 +}
 +
 +// Focus and input
- 
--  if (!mParent && mNativeView.window) {
--    // convert to screen coords
--    temp = [mNativeView.window convertPoint:temp toWindow:nil];
++
 +void nsWindow::SetFocus(Raise, mozilla::dom::CallerType) {
 +  [[mNativeView window] makeKeyWindow];
 +  [mNativeView becomeFirstResponder];
@@ -913,23 +910,26 @@ index c1c4c3deb341..c6518d1374bd 100644
 +bool nsWindow::FocusForHardwareKeyboard() {
 +  if (!mNativeView || ![mNativeView window]) {
 +    return false;
-   }
++  }
  
--  offset.x += static_cast<int32_t>(temp.x);
--  offset.y += static_cast<int32_t>(temp.y);
+-  if (!mParent && mNativeView.window) {
+-    // convert to screen coords
+-    temp = [mNativeView.window convertPoint:temp toWindow:nil];
 +  const bool wasSuppressed = mSoftwareKeyboardSuppressed;
 +  mSoftwareKeyboardSuppressed = true;
 +  if (![mNativeView becomeFirstResponder]) {
 +    mSoftwareKeyboardSuppressed = wasSuppressed;
 +    return false;
-+  }
+   }
 +  [mNativeView reloadInputViews];
 +  return true;
 +}
  
--  return offset;
+-  offset.x += static_cast<int32_t>(temp.x);
+-  offset.y += static_cast<int32_t>(temp.y);
 +// Rendering
-+
+ 
+-  return offset;
 +void nsWindow::Invalidate(const LayoutDeviceIntRect& aRect) {
 +  if (!mNativeView || !mVisible) return;
 +
@@ -971,10 +971,10 @@ index c1c4c3deb341..c6518d1374bd 100644
 +    mTextInputHandler->InvalidateTextInputState(true);
 +  }
 +
-+  if (allowsSoftwareKeyboard) {
-+    mSoftwareKeyboardSuppressed = false;
-+  } else if (IsVirtualKeyboardDisabled()) {
++  if (IsVirtualKeyboardDisabled()) {
 +    mSoftwareKeyboardSuppressed = true;
++  } else if (allowsSoftwareKeyboard) {
++    mSoftwareKeyboardSuppressed = false;
 +  }
 +  [mNativeView updateTextInteractions];
  
@@ -1004,8 +1004,7 @@ index c1c4c3deb341..c6518d1374bd 100644
 +    [mNativeView scheduleResponderBlur];
 +    return;
 +  }
- 
--  if (aAction.UserMightRequestOpenVKB() || changingEnabledState) {
++
 +  // Existing first-responder ownership may be hardware-only. Software keyboard
 +  // authorization is tracked separately by mSoftwareKeyboardSuppressed.
 +  const bool shouldBecomeFirstResponder =
@@ -1017,7 +1016,8 @@ index c1c4c3deb341..c6518d1374bd 100644
 +    [mNativeView cancelResponderBlur];
 +    [mNativeView becomeFirstResponder];
 +  }
-+
+ 
+-  if (aAction.UserMightRequestOpenVKB() || changingEnabledState) {
 +  if (shouldBecomeFirstResponder &&
 +      (aAction.UserMightRequestOpenVKB() || changingEnabledState)) {
      // TODO(m_kato):
