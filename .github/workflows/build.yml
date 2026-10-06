@@ -78,7 +78,7 @@ jobs:
     needs: prepare
     if: ${{ needs.prepare.outputs.should_build == 'true' }}
     name: "${{ matrix.variant == 'standard' && 'Build Standard / TrollStore' || 'Build Jailbroken' }}"
-    runs-on: macos-27
+    runs-on: [self-hosted, macOS]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
