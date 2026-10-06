@@ -1,5 +1,5 @@
 diff --git a/dom/events/ContentEventHandler.cpp b/dom/events/ContentEventHandler.cpp
-index d11a218cd050..56a74685a5ac 100644
+index d11a218cd050..ce183f9b013e 100644
 --- a/dom/events/ContentEventHandler.cpp
 +++ b/dom/events/ContentEventHandler.cpp
 @@ -6,18 +6,26 @@
@@ -60,7 +60,7 @@ index d11a218cd050..56a74685a5ac 100644
  #include "nsTextFrame.h"
  
  // Work around conflicting define in rpcndr.h
-@@ -443,6 +458,939 @@ Result<nsRange*, nsresult> ContentEventHandler::InitRootContent(
+@@ -443,6 +458,946 @@ Result<nsRange*, nsresult> ContentEventHandler::InitRootContent(
    return rangeInRootElement;
  }
  
@@ -982,6 +982,13 @@ index d11a218cd050..56a74685a5ac 100644
 +                                         ScrollFlags::ScrollFirstAncestorOnly);
 +      break;
 +    }
++    case NativeTextInputQuery::BlurFocusedInput: {
++      RefPtr<nsFocusManager> focusManager = nsFocusManager::GetFocusManager();
++      nsCOMPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow();
++      NS_ENSURE_TRUE(focusManager && window, NS_ERROR_NOT_AVAILABLE);
++      focusManager->ClearFocus(window);
++      break;
++    }
 +    case NativeTextInputQuery::ClearSelection: {
 +      ErrorResult error;
 +      MOZ_KnownLive(mSelection)->RemoveAllRanges(error);
@@ -1000,7 +1007,7 @@ index d11a218cd050..56a74685a5ac 100644
  nsresult ContentEventHandler::InitCommon(EventMessage aEventMessage,
                                           SelectionType aSelectionType,
                                           bool aRequireFlush) {
-@@ -628,6 +1576,13 @@ nsresult ContentEventHandler::QueryContentRect(
+@@ -628,6 +1583,13 @@ nsresult ContentEventHandler::QueryContentRect(
  
    aEvent->mReply->mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
        resultRect, presContext->AppUnitsPerDevPixel());
@@ -1014,7 +1021,7 @@ index d11a218cd050..56a74685a5ac 100644
    // Returning empty rect may cause native IME confused, let's make sure to
    // return non-empty rect.
    EnsureNonEmptyRect(aEvent->mReply->mRect);
-@@ -635,6 +1590,32 @@ nsresult ContentEventHandler::QueryContentRect(
+@@ -635,6 +1597,32 @@ nsresult ContentEventHandler::QueryContentRect(
    return NS_OK;
  }
  
@@ -1047,7 +1054,7 @@ index d11a218cd050..56a74685a5ac 100644
  // Editor places a padding <br> element under its root content if the editor
  // doesn't have any text. This happens even for single line editors.
  // When we get text content and when we change the selection,
-@@ -2525,6 +3506,7 @@ nsresult ContentEventHandler::OnQueryTextRect(WidgetQueryContentEvent* aEvent) {
+@@ -2525,6 +3513,7 @@ nsresult ContentEventHandler::OnQueryTextRect(WidgetQueryContentEvent* aEvent) {
    }
    DOMRangeAndAdjustedOffsetInFlattenedText domRangeAndAdjustedOffset =
        domRangeAndAdjustedOffsetOrError.unwrap();
@@ -1055,7 +1062,7 @@ index d11a218cd050..56a74685a5ac 100644
    nsString string;
    if (NS_WARN_IF(NS_FAILED(
            GenerateFlatTextContent(domRangeAndAdjustedOffset.mRange, string)))) {
-@@ -2862,9 +3844,58 @@ nsresult ContentEventHandler::OnQueryEditorRect(
+@@ -2862,9 +3851,58 @@ nsresult ContentEventHandler::OnQueryEditorRect(
      }
    }
  
@@ -1116,7 +1123,7 @@ index d11a218cd050..56a74685a5ac 100644
  
    MOZ_ASSERT(aEvent->Succeeded());
    return NS_OK;
-@@ -3416,13 +4447,63 @@ nsresult ContentEventHandler::ConvertToRootRelativeOffset(nsIFrame* aFrame,
+@@ -3416,13 +4454,63 @@ nsresult ContentEventHandler::ConvertToRootRelativeOffset(nsIFrame* aFrame,
    if (NS_WARN_IF(!rootPC)) {
      return NS_ERROR_FAILURE;
    }
@@ -1181,7 +1188,7 @@ index d11a218cd050..56a74685a5ac 100644
    // TransformFrameRectToAncestor returned the rect in the ancestor's appUnits,
    // but we want it in aFrame's units (in case of different full-zoom factors),
    // so convert back.
-@@ -3481,7 +4562,8 @@ static void AdjustRangeForSelection(const Element* aRootElement,
+@@ -3481,7 +4569,8 @@ static void AdjustRangeForSelection(const Element* aRootElement,
    }
  }
  
@@ -1191,7 +1198,7 @@ index d11a218cd050..56a74685a5ac 100644
    aEvent->mSucceeded = false;
  
    // Get selection to manipulate
-@@ -3533,6 +4615,19 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
+@@ -3533,6 +4622,19 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
      }
    }
  
@@ -1211,7 +1218,7 @@ index d11a218cd050..56a74685a5ac 100644
    if (aEvent->mReversed) {
      nsCOMPtr<nsINode> startNodeStrong(startNode);
      nsCOMPtr<nsINode> endNodeStrong(endNode);
-@@ -3558,7 +4653,8 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
+@@ -3558,7 +4660,8 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
    // `ContentEventHandler` is a `MOZ_STACK_CLASS`, so `mSelection` is known to
    // be alive.
    MOZ_KnownLive(mSelection)

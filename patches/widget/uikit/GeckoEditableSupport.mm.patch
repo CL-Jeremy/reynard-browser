@@ -1,9 +1,9 @@
 diff --git a/widget/uikit/GeckoEditableSupport.mm b/widget/uikit/GeckoEditableSupport.mm
 new file mode 100644
-index 000000000000..aa43c3be0170
+index 000000000000..0bea8a9f30c5
 --- /dev/null
 +++ b/widget/uikit/GeckoEditableSupport.mm
-@@ -0,0 +1,3282 @@
+@@ -0,0 +1,3387 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +14,7 @@ index 000000000000..aa43c3be0170
 +#import <UIKit/UIKit.h>
 +#import <objc/runtime.h>
 +
++#include <dlfcn.h>
 +#include <algorithm>
 +
 +#include "GeckoEditableSupport.h"
@@ -131,10 +132,22 @@ index 000000000000..aa43c3be0170
 +@property(nonatomic, readonly) CGPoint extentPoint;
 +@end
 +
++@protocol GeckoTextContextMenuInteraction <NSObject>
++- (UIEditMenuInteraction*)editMenuInteraction API_AVAILABLE(ios(16.0));
++@end
++
++@protocol GeckoTextEditMenuAssistant <NSObject>
++- (id)menuInteraction API_AVAILABLE(ios(16.0));
++- (BOOL)_editMenuIsVisible API_AVAILABLE(ios(16.0));
++@end
++
 +@protocol GeckoTextInteractionAssistant <GeckoTextInteractionCommands>
 +- (UITextInteraction*)interactions;
 +- (void)activateSelection;
 +- (void)deactivateSelection;
++- (void)selectionChanged;
++- (void)willStartScrollingOrZooming;
++- (void)didEndScrollingOrZooming;
 +- (void)selectAll:(id)aSender;
 +- (void)showSelectionCommandsForSecondaryClickAtPoint:(CGPoint)aPoint;
 +- (void)beginFloatingCursorAtPoint:(CGPoint)aPoint;
@@ -146,6 +159,7 @@ index 000000000000..aa43c3be0170
 +- (void)updateSelectionWithPoint:(CGPoint)aPoint;
 +- (id<GeckoTextRangeAdjustmentInteraction>)rangeAdjustmentInteraction;
 +- (CGPoint)_rangeAdjustmentPointInTextInputCoordinateSpace:(CGPoint)aPoint;
++- (id<GeckoTextEditMenuAssistant>)_editMenuAssistant API_AVAILABLE(ios(16.0));
 +@end
 +
 +@interface ChildView (Shared) <UITextInput,
@@ -172,6 +186,8 @@ index 000000000000..aa43c3be0170
 +- (void)scheduleResponderBlur;
 +- (void)cancelResponderBlur;
 +- (void)applyResponderBlur;
++- (void)dismissSoftwareKeyboard;
++- (void)keyboardDidRequestDismissal:(NSNotification*)aNotification;
 +
 +- (NSUInteger)documentLength;
 +- (NSRange)selectedRange;
@@ -381,6 +397,10 @@ index 000000000000..aa43c3be0170
 +    return false;
 +  }
 +
++  if (aRequest.mQuery == NativeTextInputQuery::BlurFocusedInput) {
++    return !Destroyed();
++  }
++
 +  if (Destroyed() || !mWidget->GetInputContext().mIMEState.IsEditable()) {
 +    return false;
 +  }
@@ -460,6 +480,7 @@ index 000000000000..aa43c3be0170
 +  }
 +
 +  const uint64_t focusGeneration = mNativeTextInputFocusGeneration;
++  const bool hadCachedState = mNativeTextInputState.isSome();
 +  bool textChanged = false;
 +  bool selectionChanged = false;
 +  if (mNativeTextInputState) {
@@ -514,7 +535,15 @@ index 000000000000..aa43c3be0170
 +  }
 +
 +  // The callbacks can change focus again after we update the cache.
-+  return focusGeneration == mNativeTextInputFocusGeneration;
++  if (focusGeneration != mNativeTextInputFocusGeneration) {
++    return false;
++  }
++
++  if (aNotifyInputDelegate && (selectionChanged || !hadCachedState)) {
++    [[view interactionAssistant] selectionChanged];
++  }
++
++  return !Destroyed() && focusGeneration == mNativeTextInputFocusGeneration;
 +}
 +
 +bool TextInputHandler::SelectedRange(NSRange& aRange) {
@@ -1088,6 +1117,12 @@ index 000000000000..aa43c3be0170
 +
 +// MARK: - Text Interaction Lifecycle
 +
++static NSString* KeyboardDismissalNotificationName() {
++  auto* name = static_cast<NSString* const*>(
++      dlsym(RTLD_DEFAULT, "UIKeyboardPrivateDidRequestDismissalNotification"));
++  return name ? *name : nil;
++}
++
 +@interface GeckoTextInteractionAssistantDelegate : NSObject {
 +  id<GeckoTextInteractionAssistant> mAssistant;
 +}
@@ -1167,9 +1202,23 @@ index 000000000000..aa43c3be0170
 +
 +  [self setupTextDragInteractions];
 +  [self updateTextInteractions];
++
++  if (NSString* name = KeyboardDismissalNotificationName()) {
++    [NSNotificationCenter.defaultCenter
++        addObserver:self
++           selector:@selector(keyboardDidRequestDismissal:)
++               name:name
++             object:nil];
++  }
 +}
 +
 +- (void)teardownTextInput {
++  if (NSString* name = KeyboardDismissalNotificationName()) {
++    [NSNotificationCenter.defaultCenter removeObserver:self
++                                                  name:name
++                                                object:nil];
++  }
++
 +  [self cancelAutoscroll];
 +  [self teardownTextDragInteractions];
 +  [NSObject cancelPreviousPerformRequestsWithTarget:self];
@@ -1276,6 +1325,12 @@ index 000000000000..aa43c3be0170
 +    [assistant deactivateSelection];
 +  }
 +  mEditable.mSelectionActivated = shouldActivate;
++
++  if (shouldActivate) {
++    // The first tap reaches Gecko before editable gestures are attached.
++    // Reload that selection when UIKit takes over.
++    [assistant selectionChanged];
++  }
 +}
 +
 +- (void)refreshSelectionUI {
@@ -1303,6 +1358,35 @@ index 000000000000..aa43c3be0170
 +  }
 +
 +  [self updateSelectionActivation];
++
++  if (@available(iOS 16.0, *)) {
++    id<GeckoTextInteractionAssistant> assistant = [self interactionAssistant];
++    if (![assistant respondsToSelector:@selector(_editMenuAssistant)]) {
++      return;
++    }
++
++    id<GeckoTextEditMenuAssistant> menuAssistant =
++        [assistant _editMenuAssistant];
++    if (![menuAssistant _editMenuIsVisible]) {
++      return;
++    }
++
++    // Update selection views before asking UIKit to position its menu.
++    if (@available(iOS 17.0, *)) {
++      [(UITextSelectionDisplayInteraction*)[self _selectionDisplayInteraction]
++          layoutManagedSubviews];
++    }
++
++    // UIKit can wrap its edit menu in UITextContextMenuInteraction.
++    id menu = [menuAssistant menuInteraction];
++    if ([menu respondsToSelector:@selector(editMenuInteraction)]) {
++      menu = [(id<GeckoTextContextMenuInteraction>)menu editMenuInteraction];
++    }
++
++    if ([menu isKindOfClass:UIEditMenuInteraction.class]) {
++      [(UIEditMenuInteraction*)menu updateVisibleMenuPositionAnimated:NO];
++    }
++  }
 +}
 +
 +- (void)asyncScrollStateChanged:(BOOL)aScrolling {
@@ -1320,14 +1404,14 @@ index 000000000000..aa43c3be0170
 +    }
 +
 +    mEditable.mAsyncScrollInProgress = YES;
-+    [[self selectionCommandController] hideSelectionCommands];
++    id<GeckoTextInteractionAssistant> assistant = [self interactionAssistant];
++    [assistant willStartScrollingOrZooming];
++    [assistant deactivateSelection];
++    mEditable.mSelectionActivated = NO;
 +
 +    if (@available(iOS 17.0, *)) {
 +      [(UITextSelectionDisplayInteraction*)[self _selectionDisplayInteraction]
 +          setActivated:NO];
-+    } else {
-+      [[self interactionAssistant] deactivateSelection];
-+      mEditable.mSelectionActivated = NO;
 +    }
 +
 +    return;
@@ -1339,6 +1423,7 @@ index 000000000000..aa43c3be0170
 +  }
 +
 +  [self refreshSelectionUI];
++  [[self interactionAssistant] didEndScrollingOrZooming];
 +}
 +
 +- (void)selectionGeometryChanged {
@@ -1636,6 +1721,26 @@ index 000000000000..aa43c3be0170
 +
 +- (void)applyResponderBlur {
 +  [self resignFirstResponder];
++}
++
++- (void)dismissSoftwareKeyboard {
++  if (RefPtr<widget::TextInputHandler> handler = [self textHandler]) {
++    [self unmarkText];
++
++    NativeTextInputRequest request;
++    request.mQuery = NativeTextInputQuery::BlurFocusedInput;
++    NativeTextInputReply reply;
++    handler->QueryNativeTextInput(request, reply);
++  }
++
++  [self cancelResponderBlur];
++  [self resignFirstResponder];
++}
++
++- (void)keyboardDidRequestDismissal:(NSNotification*)aNotification {
++  if ([self isEditable] && [self isFirstResponder]) {
++    mGeckoChild->DismissSoftwareKeyboard();
++  }
 +}
 +
 +// MARK: - Text Positions and Ranges
