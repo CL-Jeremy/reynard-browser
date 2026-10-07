@@ -499,6 +499,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 01GECKO0052F2F289C001F0001 /* Reynard.xcconfig */;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Reynard/Entitlements/Reynard.entitlements";
@@ -569,6 +570,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 01GECKO0052F2F289C001F0001 /* Reynard.xcconfig */;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Reynard/Entitlements/Reynard.entitlements";
@@ -638,6 +640,7 @@
 		018C67B42F2F289E001F0BBB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -704,6 +707,7 @@
 		018C67B52F2F289E001F0BBB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -764,6 +768,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 01GECKO0052F2F289C001F0001 /* Reynard.xcconfig */;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
@@ -878,6 +883,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 01GECKO0052F2F289C001F0001 /* Reynard.xcconfig */;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Helper/Entitlements/Reynard-Helper.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -975,6 +981,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 01GECKO0052F2F289C001F0001 /* Reynard.xcconfig */;
 			buildSettings = {
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
